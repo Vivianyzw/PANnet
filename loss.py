@@ -30,7 +30,7 @@ class PANloss(nn.Module):
             text_mask = text_mask_map == mask_id
             kernel_mask = kernel_mask_map == mask_id
 
-           F_kernel = similarity_vector.mul(kernel_mask.float())
+            F_kernel = similarity_vector.mul(kernel_mask.float())
             G = F_kernel / kernel_mask.sum()
 
             G = G.reshape(batch_size, 4, -1)
