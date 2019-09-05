@@ -17,7 +17,6 @@ class PANloss(nn.Module):
         kernel_loss = 1 - 2 * gt.mul(pred).sum() / (gt.mul(gt).sum() + pred.mul(pred).sum())
         return kernel_loss
 
-    # 先实现batch_size = 1损失函数
     def aggregation_loss(self, text_region, text_mask_map, kernel_map, kernel_mask_map, similarity_vector, batch_size=1):
         # similarity_vecor (w x h x 4)
         # 计算agg_loss时只考虑文字部分
@@ -31,14 +30,13 @@ class PANloss(nn.Module):
             text_mask = text_mask_map == mask_id
             kernel_mask = kernel_mask_map == mask_id
 
-            G_matrix = kernel_map.mul(kernel_mask.float())
-            G_norm = torch.norm(G_matrix)
-            F_kernel = similarity_vector.mul(kernel_mask.float())
+           F_kernel = similarity_vector.mul(kernel_mask.float())
+            G = F_kernel / kernel_mask.sum()
 
-            G = F_kernel/G_norm
             G = G.reshape(batch_size, 4, -1)
             G = G.sum(dim=2)
             G_value.append(G)
+            
             F_text = similarity_vector.mul(text_mask.float()).reshape(batch_size, 4, -1)
             G = G.unsqueeze(2)
 
@@ -51,7 +49,6 @@ class PANloss(nn.Module):
             l_agg = torch.log(D+1).sum(dim=1) / text_mask.sum()
             loss_agg += l_agg
 
-        # # 这里需要注意一下，如果没有文本框, 除以max_id就为0，nan
         return loss_agg / max_id, G_value
 
     def distance_loss(self, G_value):
@@ -68,13 +65,13 @@ class PANloss(nn.Module):
 
     def forward(self, text_gt, text_pred, text_mask, kernel_gt, kernel_pred, kernel_mask, similarity_vector):
         """
-        :param text_region_gt: 文本区域的ground truth，0：非文本；1：文本
-        :param text_region: 文本区域的pred
-        :param text_mask_map: 文本区域的mask，非文本：0；第一个区域：1；第二个区域:2...
+        :param text_gt: 文本区域的ground truth，0：非文本；1：文本
+        :param text_pred: 文本区域的pred
+        :param text_mask: 文本区域的mask，非文本：0；第一个区域：1；第二个区域:2...
         :param kernel_gt: 缩小了scale_ratio的ground truth 0：非文本；1：文本
-        :param kernel_map: 预测的
-        :param kernel_mask_map:
-        :param similarity_vector:
+        :param kernel_pred: 预测的
+        :param kernel_mask: 缩小了的kernel，非文本:0, 第一个区域：1, 第二个区域：2...
+        :param similarity_vector: 相似性向量
         :return:
         """
         alpha = 0.5
