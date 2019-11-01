@@ -1,8 +1,6 @@
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import torch
-
 
 # backbone
 
@@ -48,9 +46,18 @@ class PANnet(nn.Module):
         )
 
         self.output = nn.Sequential(
-            nn.Conv2d(512, 1, kernel_size=1),
+            nn.Conv2d(512, 6, kernel_size=1),
             nn.Sigmoid()
         )
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            print(self.modules)
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
 
     def get_input(self, input):
         output = self.model.conv1(input)
@@ -134,11 +141,13 @@ class PANnet(nn.Module):
         output_layers = self.down_scale_enhancement(layers)
         final_feature_map = self.feature_fusion_module(input_layers, output_layers)
         final_feature_map = self.upsample1(final_feature_map)
-        output_text_region = self.output_text_region(final_feature_map)
-        output_kernel = self.output_kernel(final_feature_map)
-        output_similarity_vector = self.output_similarity_vector(final_feature_map)
-        # return input_layers
+        output = self.output(final_feature_map)
+        output_text_region = output[:,0,:,:].unsqueeze(1)
+        output_kernel = output[:, 1, :, :].unsqueeze(1)
+        output_similarity_vector = output[:, 2:, :, :]
+
         return output_text_region, output_kernel, output_similarity_vector
+
 
 
 if __name__ == '__main__':
@@ -149,3 +158,4 @@ if __name__ == '__main__':
     input = torch.randn(size=(1, 3, 224, 224), dtype=torch.float32)
     # print(model)
     summary(model, (3, 224, 224),  device='cpu')
+
