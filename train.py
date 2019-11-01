@@ -26,7 +26,7 @@ def Normalization(input, mean, std):
 img_path = r'D:\work\vivian\data\ch4_training_images'
 label_path = r'D:\work\vivian\data\ch4_training_localization_transcription_gt'
 
-dataset = DataLoader(img_path, label_path, True, True)
+dataset = mytraindata(img_path, label_path, True, True)
 data_loader = DATA.DataLoader(dataset, batch_size=BATCH_SIZE)
 net = PANnet()
 net = net.to(device)
@@ -39,10 +39,10 @@ criterion = PANloss()
 for epoch in range(1000):
     for i, data in enumerate(data_loader, 0):
         image, gt_maps, seg_maps, training_mask = data
-        text_gt = gt_maps[:, :, :, 0]
-        text_mask = gt_maps[:, :, :, 1]
-        kernel_gt = seg_maps[:, :, :, 0]
-        kernel_mask = seg_maps[:, :, :, 1]
+        text_gt = gt_maps[:, :, :, 0].unsqueeze(1)
+        text_mask = gt_maps[:, :, :, 1].unsqueeze(1)
+        kernel_gt = seg_maps[:, :, :, 0].unsqueeze(1)
+        kernel_mask = seg_maps[:, :, :, 1].unsqueeze(1)
 
         image = image.to(device)
         text_gt = text_gt.to(device)
